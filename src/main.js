@@ -74,6 +74,10 @@ Object.entries(textureMap).forEach(([key, paths]) => {
   loadedTextures.day[key] = dayTexture;
 });
 
+// animation object
+const xAxisFan = [];
+const yAxisFan = [];
+
 // Material section
 const glassMaterial = new THREE.MeshPhysicalMaterial({
   transmission: 1,
@@ -112,6 +116,7 @@ loader.load("/models/room_exported.glb", (glb) => {
   glb.scene.traverse(child => {
     if (child.isMesh) {
 
+      // HERE FOR BAKED OBJECT
       Object.keys(textureMap).forEach(key => {
         if (child.name.includes(key)) {
           const material = new THREE.MeshBasicMaterial({
@@ -121,10 +126,12 @@ loader.load("/models/room_exported.glb", (glb) => {
           child.material = material;
         }
         if (child.material.map) {
-        child.material.map.minFilter = THREE.LinearFilter
-      }
+          child.material.map.minFilter = THREE.LinearFilter
+        }
+
       });
-       
+      
+      // HERE FOR UNBAKED OBJECT
       if (child.name.includes("glass")) {
         child.material = glassMaterial;
       }
@@ -143,6 +150,16 @@ loader.load("/models/room_exported.glb", (glb) => {
         child.material = new THREE.MeshBasicMaterial({
           map: videoTexture,
         });
+      }
+
+      if (child.name.includes("fan")){
+
+        if (child.name.includes("fan_front") || child.name.includes("fan_behind")) {
+          xAxisFan.push(child);
+        }
+        else if (child.name.includes("fan_mid")){
+          yAxisFan.push(child);
+        }
       }
     }
   });
@@ -206,6 +223,14 @@ const render = () => {
   // console.log(camera.position);
   // console.log(controls.target);
   // console.log("000000000")
+
+  // animate fans
+  xAxisFan.forEach(fan => {
+    fan.rotation.x += 0.01;
+  })
+  yAxisFan.forEach(fan => {
+    fan.rotation.y += 0.01;
+  })
 
   renderer.render(scene, camera);
 
