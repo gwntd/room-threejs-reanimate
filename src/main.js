@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import gsap from 'gsap';
 
 // add canvas
 const canvas = document.querySelector('#experience-canvas')
@@ -39,22 +40,23 @@ const environmentMap = new THREE.CubeTextureLoader()
     'pz.webp',
     'nz.webp',
   ]);
+  
 
 // add nested object
 const textureMap = {
-  first_scene: {
+  First_Scene: {
     day: "/textures/room/day/first_scene_again.webp",
   },
-  second_scene: {
+  Second_Scene: {
     day: "/textures/room/day/second_scene_again.webp",
   },
-  third_scene: {
+  Third_Scene: {
     day: "/textures/room/day/third_scene_again.webp",
   },
-  fourth_scene: {
+  Fourth_Scene: {
     day: "/textures/room/day/fourth_scene_again.webp",
   },
-  fifth_scene: {
+  Fifth_Scene: {
   day: "/textures/room/day/fifth_scene_again.webp",
   },
 };
@@ -77,6 +79,21 @@ Object.entries(textureMap).forEach(([key, paths]) => {
 // animation object
 const xAxisFan = [];
 const yAxisFan = [];
+
+// raycaster
+const raycaster = new THREE.Raycaster();
+const raycasterObject = [];
+let currentIntersects = [];
+
+// pointer
+const pointer = new THREE.Vector2();
+
+// Add Object Classification
+const socialLinks = {
+  "Github": "https://github.com/gwntd",
+  "X": "https://x.com/gwntodd",
+  "Youtube": "https://www.youtube.com/@gwntod",
+};
 
 // Material section
 const glassMaterial = new THREE.MeshPhysicalMaterial({
@@ -105,10 +122,109 @@ videoElement.playsInline = true;
 videoElement.autoplay = true;
 videoElement.play();
 
-// Video Renderer
+// Renderer Texture Video
 const videoTexture = new THREE.VideoTexture(videoElement)
 videoTexture.colorSpace = THREE.SRGBColorSpace;
 videoTexture.flipY = false;
+
+// Add Pointer Move Event Listener
+window.addEventListener("pointermove", (event) => {
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+});
+
+// add HTML Element
+const modals = {
+  mywork: document.querySelector(".modal.mywork"),
+  about: document.querySelector(".modal.about"),
+  contact: document.querySelector(".modal.contact"),
+};
+
+const showModal = (modal) => {
+  modal.style.display = "block"
+
+  gsap.set(modal, {opacity: 0});
+
+  gsap.to(modal, {
+    opacity: 1,
+    duration: 0.5,
+  });
+};
+
+const hideModal = (modal) => {
+  gsap.to(modal, {
+    opacity: 0,
+    duration: 0.5,
+    onComplete: () => {
+      modal.style.display = "none"
+    },
+  });
+};
+
+// select exit button
+document.querySelectorAll(".modal-exit-button").forEach((button) => {
+  let touchHappened = true;
+  button.addEventListener("click", (event) => {
+    touchHappened
+    const closedButton = event.currentTarget.closest(".modal");
+    hideModal(closedButton);
+  },
+  { passive : false }
+  );
+
+  button.addEventListener("touchend", (event) => {
+    if(touchHappened) return;
+    event.preventDefault();
+    const modal = event.currentTarget.closest(".modal");
+    hideModal(modal);
+  },
+  { passive : false }
+  );
+});
+
+// Add Click Event Listener (MOBILE)
+window.addEventListener ("touchstart", (event) => {
+  event.preventDefault();
+  pointer.x = (event.touches[0].clientX / sizes.width) * 2 - 1;
+  pointer.y = - (event.touches[0].clientY / sizes.height) * 2 + 1;
+},
+{ passive: false }
+);
+
+window.addEventListener ("touchend", (event) => {
+  event.preventDefault();
+  handleRaycasterInteraction();
+},
+{ passive: false }
+);
+
+function handleRaycasterInteraction (){
+
+  if (currentIntersects.length > 0){
+    const object = currentIntersects[0].object;
+
+    Object.entries(socialLinks).forEach(([key, url]) => {
+      if (object.name.includes(key)){
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    });
+
+    if (object.name.includes("Mywork")){
+      showModal(modals.mywork)
+    }
+    else if (object.name.includes("About")){
+      showModal(modals.about)
+    }
+    else if (object.name.includes("Contact")){
+      showModal(modals.contact)
+    }
+  }
+  
+}
+
+// Add Click Event Listener (PC)
+window.addEventListener("click", handleRaycasterInteraction);
+
 
 loader.load("/models/room_exported.glb", (glb) => {
   glb.scene.position.set(2, -3, 0)
@@ -124,7 +240,8 @@ loader.load("/models/room_exported.glb", (glb) => {
           });
 
           child.material = material;
-        }
+        };
+
         if (child.material.map) {
           child.material.map.minFilter = THREE.LinearFilter
         }
@@ -132,10 +249,10 @@ loader.load("/models/room_exported.glb", (glb) => {
       });
       
       // HERE FOR UNBAKED OBJECT
-      if (child.name.includes("glass")) {
+      if (child.name.includes("Glass")) {
         child.material = glassMaterial;
       }
-      else if (child.name.includes("water")) {
+      else if (child.name.includes("Water")) {
         child.material = new THREE.MeshBasicMaterial({
           color: 0x558bc8,
           transparent: true,
@@ -143,24 +260,30 @@ loader.load("/models/room_exported.glb", (glb) => {
           depthWrite: false,
         });
       }
-      else if (child.name.includes("bubble")) {
+      else if (child.name.includes("Bubble")) {
         child.material = whiteMaterial;
       }
-      else if (child.name.includes("screen")) {
+      else if (child.name.includes("Screen")) {
         child.material = new THREE.MeshBasicMaterial({
           map: videoTexture,
         });
-      }
+      };
 
-      if (child.name.includes("fan")){
+      if (child.name.includes("Fan")){
 
-        if (child.name.includes("fan_front") || child.name.includes("fan_behind")) {
+        if (child.name.includes("Fan_Front") || child.name.includes("Fan_Behind")) {
           xAxisFan.push(child);
         }
-        else if (child.name.includes("fan_mid")){
+        else if (child.name.includes("Fan_Mid")){
           yAxisFan.push(child);
         }
       }
+
+      if (child.name.includes("Raycaster")){
+        raycasterObject.push(child);
+      }
+
+
     }
   });
 
@@ -209,7 +332,7 @@ renderer.setClearColor("#ffffff" , 1);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.2;
-controls.target.set = (0, 0, 0);
+controls.target.set(0, 0, 0);
 
 // render animate function
 const render = () => {
@@ -231,6 +354,26 @@ const render = () => {
   yAxisFan.forEach(fan => {
     fan.rotation.y += 0.01;
   })
+
+  // raycaster
+  // update the picking ray with camera and pointer position
+  raycaster.setFromCamera( pointer, camera);
+
+  //calculate object intersecting the picking ray
+  currentIntersects = raycaster.intersectObjects( raycasterObject, true );
+
+  for ( let i = 0; i < currentIntersects.length; i ++ ){
+    // currentIntersects[ i ].object.material.color.set( 0xff0000 );
+  };
+
+  if ( currentIntersects.length > 0 ){
+    const currentIntersectObject = currentIntersects[0].object;
+
+    document.body.style.cursor = currentIntersectObject.name.includes("Pointer") ? "pointer" : "default";
+  }
+  else {
+    document.body.style.cursor = "default";
+  };
 
   renderer.render(scene, camera);
 
