@@ -129,6 +129,7 @@ videoTexture.flipY = false;
 
 // Add Pointer Move Event Listener
 window.addEventListener("pointermove", (event) => {
+  touchHappened = false;
   pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
   pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 });
