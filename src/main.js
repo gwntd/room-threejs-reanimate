@@ -129,7 +129,6 @@ videoTexture.flipY = false;
 
 // Add Pointer Move Event Listener
 window.addEventListener("pointermove", (event) => {
-  touchHappened = false;
   pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
   pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
 });
@@ -164,9 +163,7 @@ const hideModal = (modal) => {
 
 // select exit button
 document.querySelectorAll(".modal-exit-button").forEach((button) => {
-  let touchHappened = true;
   button.addEventListener("click", (event) => {
-    touchHappened
     const closedButton = event.currentTarget.closest(".modal");
     hideModal(closedButton);
   },
@@ -174,7 +171,6 @@ document.querySelectorAll(".modal-exit-button").forEach((button) => {
   );
 
   button.addEventListener("touchend", (event) => {
-    if(touchHappened) return;
     event.preventDefault();
     const modal = event.currentTarget.closest(".modal");
     hideModal(modal);
