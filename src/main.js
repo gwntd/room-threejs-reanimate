@@ -165,10 +165,10 @@ console.log(controls.enabled);
 
 // set starting camera position
 if (window.innerWidth < 768){
-  camera.position.set(
-    25.778973682202604, 
-    12.826662493142399, 
-    22.791982153439797, 
+    camera.position.set(
+    60.49764275034944, 
+    17.806753580831288, 
+    49.649443576586705, 
   );
   controls.target.set(
     -1.3342050177061286,
@@ -178,9 +178,9 @@ if (window.innerWidth < 768){
 } 
 else {
   camera.position.set(
-    60.49764275034944, 
-    17.806753580831288, 
-    49.649443576586705, 
+    25.778973682202604, 
+    12.826662493142399, 
+    22.791982153439797, 
   );
   controls.target.set(
     -1.3342050177061286,
