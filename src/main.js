@@ -196,10 +196,6 @@ const animatedIntroObject = {
     hover : true,
     raycaster: true,
   }, 
-  Logo : {
-    hover : true,
-    raycaster: true,
-  },
   Pikachu : {
     hover : true,
     raycaster: true,
@@ -235,6 +231,30 @@ const animatedIntroObject = {
   Tea : {
     hover : true,
     raycaster: true,
+  },
+  Fish_Real : { 
+    hover : true,
+    raycaster: true,
+  },
+  Logo : {
+    name : ["Logo_X","Logo_Youtube","Logo_Github"],
+    hover : true,
+    raycaster: true,
+  },
+  Mywork : {
+    hover : true,
+    raycaster: true,
+    modal : "mywork",
+  },
+  About : {
+    hover : true,
+    raycaster: true,
+    modal : "about",
+  },
+  Contact : {
+    hover : true,
+    raycaster: true,
+    modal : "contact",
   },
 }
 
@@ -284,7 +304,8 @@ function hoverAnimation(object, isHovering){
     y: object.userData.initialScale.y * scaleMultiplier,
     z: object.userData.initialScale.z * scaleMultiplier,
     duration: 0.3,
-    ease: "power2.out"
+    ease: "power2.out",
+    overwrite: true,
   });
 
   // gsap.to(object.position, {
@@ -393,9 +414,31 @@ loader.load("/models/room_exported.glb", (glb) => {
 
       const tagsName = getTags(child.name);
 
-      const configEntry = Object.entries(animatedIntroObject).find(([key]) => child.name.toLowerCase().includes(key.toLowerCase()));
+      let matchName = null;
 
-      child.userData.tags = [];
+      const configEntry = Object.entries(animatedIntroObject).find(([key, config]) => {
+        const name = child.name.toLowerCase();
+        
+        //check multiples name
+        if(config.name){
+          const found = config.name.find(n => name.includes(n.toLowerCase()));
+
+          if (found){
+            matchName = found;
+            return true;
+          }
+        }
+
+        if (name.includes(key.toLowerCase())){
+          matchName = key;
+          return true;
+        }
+
+        // fallback to key
+        return false;
+      });
+
+      child.userData.tags = child.userData.tags || [];
       
       if(configEntry) {
         const [, config] = configEntry;
@@ -410,6 +453,31 @@ loader.load("/models/room_exported.glb", (glb) => {
           child.userData.tags.push("Raycaster");
         }
 
+        // logo pointer event
+        const logoLinks = {
+          Logo_X: socialLinks.X,
+          Logo_Youtube: socialLinks.Youtube,
+          Logo_Github: socialLinks.Github,
+        };
+
+        if (matchName && logoLinks[matchName]) {
+          child.userData.link = logoLinks[matchName];
+          child.userData.tags.push("Pointer");
+        }
+
+        // modal pointer event
+        const modalLinks = {
+          Mywork: "mywork",
+          About: "about",
+          Contact: "contact",
+        };
+
+        if (matchName && modalLinks[matchName]) {
+          child.userData.modal = modalLinks[matchName];
+          child.userData.tags.push("Pointer");
+        }
+
+        // raycasted child push child 
         if(child.userData.tags.includes("Raycaster")){
           raycasterObject.push(child);
 
@@ -427,7 +495,7 @@ loader.load("/models/room_exported.glb", (glb) => {
 
       applyContainer(child);
     }
-    console.log(child.name, child.type);
+    // console.log(child.name, child.type);
   });
 
   scene.add(glb.scene);
@@ -534,6 +602,99 @@ function getTags(name){
   return parts[1].split("_");
 }
 
+// CLICK EVENT OPEN LINK
+
+let isModalOpen = false;
+let pointerMoved = false;
+let pointerDownPosition = { x:0, y:0 };
+
+window.addEventListener("pointerdown", (e) => {
+  pointerMoved = false;
+  pointerDownPosition = { x: e.clientX, y: e.clientY }
+});
+
+window.addEventListener("pointermove", (e) => {
+  const dx = e.clientX - pointerDownPosition.x;
+  const dy = e.clientY - pointerDownPosition.y;
+  if (Math.sqrt(dx * dx + dy* dy) > 5){
+    pointerMoved = true;
+  }
+});
+
+window.addEventListener("pointerup", () => {
+  if (pointerMoved) return;
+  if (isModalOpen) return;
+  if (!currentHoverObject) return;
+
+  const clickable = getClickObject(currentHoverObject)
+  if (clickable) {
+    window.open(clickable.userData.link, "_blank");
+    return;
+  }
+
+  const modalKey = currentHoverObject.userData.modal;
+  if (modalKey && modal[modalKey]){
+    Object.values(modal).forEach(m => m?.classList.remove("active"));
+    modal[modalKey].classList.add("active");
+    isModalOpen = true;
+    controls.enabled = false;
+  }
+
+  console.log("clicked");
+  console.log("currentHoverObject:", currentHoverObject);
+  console.log("modal key:", currentHoverObject?.userData?.modal);
+});
+
+document.querySelectorAll(".modal-exit-button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    btn.closest(".modal").classList.remove("active");
+    isModalOpen = false;
+    controls.enabled = true;
+  });
+});
+
+Object.values(modal).forEach(m => {
+  m?.addEventListener("click", (e) => {
+    if (e.target === m) m.classList.remove("active");
+    isModalOpen = false;
+    controls.enabled = true;
+  });
+});
+
+document.querySelectorAll(".modal").forEach(m => {
+  m.addEventListener("click", (e) => {
+    if (e.target === m) m.classList.remove("active");
+  });
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    Object.values(modal).forEach(m => m?.classList.remove("active"));
+    isModalOpen = false;
+    controls.enabled = true;
+  }
+});
+
+/*---------- IDK ----------*/
+
+function getHoverObject(object){
+  while(object){
+    if(object.userData.tags?.includes("Hover")){
+      return object;
+    }
+    object = object.parent;
+  }
+  return null;
+}
+
+function getClickObject(object){
+  while (object) {
+    if (object.userData.link) return object;
+    object = object.parent;
+  }
+  return null;
+}
+
 /*---------- RENDER ANIMATE FUNCTION ----------*/
 
 const render = () => {
@@ -555,67 +716,42 @@ const render = () => {
   })
 
   // RAYCASTER
-  raycaster.setFromCamera( pointer, camera);
+  if (!isModalOpen){
+    raycaster.setFromCamera( pointer, camera);
 
-  currentIntersects = raycaster.intersectObjects( raycasterObject, true );
+    currentIntersects = raycaster.intersectObjects( raycasterObject, true );
 
-  function getHoverObject(object){
-    while(object){
-      if(object.userData.tags?.includes("Hover")){
-        return object;
-      }
-      object = object.parent;
+    const rawHit = currentIntersects.length > 0 ? currentIntersects[0].object: null;
+
+    const hit = getHoverObject(rawHit);
+
+    if (hit !== currentHoverObject) {
+
+          if (currentHoverObject) {
+            hoverAnimation(currentHoverObject, false);
+            currentHoverObject = null;
+          }
+        
+          if (hit && hit.userData.tags?.includes("Hover")) {
+            hoverAnimation(hit, true);
+            currentHoverObject = hit;
+          }
+        }
+        
+        document.body.style.cursor = currentHoverObject?.userData.tags?.includes("Pointer") ? "pointer" : "default";
     }
-    return null;
-  }
-
-  const rawHit = currentIntersects.length > 0 ? currentIntersects[0].object: null;
-
-  const hit = getHoverObject(rawHit);
-
-  if (hit) {
-
-  document.body.style.cursor =
-    hit.userData.tags?.includes("Pointer") ? "pointer" : "default";
-
-  if (hit.userData.tags?.includes("Hover")) {
-
-    if (currentHoverObject !== hit) {
-
-      // remove previous hover
+    else {
+      // nothing hit → reset
       if (currentHoverObject) {
         hoverAnimation(currentHoverObject, false);
+        currentHoverObject = null;
       }
 
-      // apply new hover
-      hoverAnimation(hit, true);
-      currentHoverObject = hit;
-    }
-
-  } else {
-
-    // hit something but not hoverable
-    if (currentHoverObject) {
-      hoverAnimation(currentHoverObject, false);
-      currentHoverObject = null;
-    }
-
+    document.body.style.cursor = "default";
   }
 
-} else {
-
-  // nothing hit → reset
-  if (currentHoverObject) {
-    hoverAnimation(currentHoverObject, false);
-    currentHoverObject = null;
-  }
-
-  document.body.style.cursor = "default";
-}
   controls.update();
-
   renderer.render(scene, camera);
-
   window.requestAnimationFrame(render);
 };
 
